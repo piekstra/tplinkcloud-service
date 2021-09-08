@@ -4,9 +4,21 @@ This project uses your Kasa credentials to make queries to the TP-Link Cloud API
 
 ## Prerequisites
 
+### TP-Link Cloud Account
+
+These services are require a TP-Link Cloud account. 
+
+If you are new to TP-Link Kasa products, you can start by creating an account [here](https://www.tplinkcloud.com/register.php). These credentials are used for authentication in the `/api/v1/user/token` workflow.
+
+### Python 3.7+
+
+This project is built and tested with Python 3.7, 3.8, and 3.9. 
+
+Download the latest version of Python [here](https://www.python.org/downloads/).
+
 ### Uvicorn
 
-Uvicorn is an HTTP server implementation.
+Uvicorn is an HTTP server implementation which will be installed by running `pip install -r requirements.txt` from a terminal running in the [app directory](./app/).
 
 Read more about Uvicorn [here](https://www.uvicorn.org/).
 
@@ -35,3 +47,32 @@ docker run -d \
 The API will be available at: http://localhost/
 
 This can be useful to leverage the same process as the GitHub Actions Workflow for packaging the Python code.
+
+## Service Discovery
+
+Swagger is available at the `/docs` URL. If running locally, this would be accessed at [here](http://localhost:8000/docs).
+
+## Authentication
+
+A consumer must first POST to the `/api/v1/user/token` endpoint with valid TPLinkCloud account credentials as the POST data. An example curl request might look as follows:
+
+```sh
+curl -X 'POST' \
+    'http://localhost:8000/api/v1/user/token' \
+    -H 'accept: application/json' \
+    -H 'Content-Type: application/x-www-form-urlencoded' \
+    -d 'grant_type=&username=USER%40EMAIL.com&password=PASSWORD'
+```
+
+Subsequent API calls require an HTTP header value using the token provided by the output of the `/api/v1/user/token` call. An example curl request with the authentication bearer token provided might look as follows
+
+```sh
+curl -X 'GET' \
+  'http://localhost:8000/api/v1/power/devices/current?named=X' \
+  -H 'accept: application/json' \
+  -H 'Authorization: Bearer 77eee444-ATMdNs6Qy3woK7FM2MaGMar'
+```
+
+### Swagger Authentication
+
+If calling the API through the Swagger documentation page, the consumer must first use the Authorize button at the top right passing the email and password credentials. Once authenticated in Swagger, subsequent calls do not currently require further identity context to be entered manually as they will be provided by the Swagger web client.
