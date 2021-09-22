@@ -3,6 +3,7 @@ from fastapi import FastAPI
 
 from routers import user
 from routers import device_power
+from routers import device
 
 from dependencies import root_path
 
@@ -12,6 +13,7 @@ from dependencies import root_path
 app = FastAPI()
 app.include_router(user.router)
 app.include_router(device_power.router)
+app.include_router(device.router)
 
 
 @app.get(f'{root_path}/time')

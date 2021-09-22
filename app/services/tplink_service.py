@@ -1,3 +1,4 @@
+from typing import List
 from tplinkcloud import TPLinkDeviceManager, TPLinkDeviceManagerPowerTools
 
 
@@ -67,6 +68,10 @@ class TPLinkService:
         )
 
         return self._jsonify(usage)
+
+    def get_devices(self):
+        device_data = self._device_manager.get_devices()
+        return self._jsonify(device_data)
 
     def _jsonify(self, data):
         if type(data) is list:
