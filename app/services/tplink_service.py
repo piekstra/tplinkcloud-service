@@ -16,7 +16,8 @@ class TPLinkService:
             prefetch=False,
             verbose=True
         )
-        self._device_power_tools = TPLinkDeviceManagerPowerTools(self._device_manager)
+        self._device_power_tools = TPLinkDeviceManagerPowerTools(
+            self._device_manager)
 
         if auth_token:
             self._device_manager.set_auth_token(auth_token)
@@ -77,7 +78,7 @@ class TPLinkService:
             if device_id.lower() in device.device_id.lower():
                 device_sys_info = device.get_sys_info()
                 return self._jsonify(device_sys_info)
-        
+
         return device_sys_info
 
     def get_devices(self):

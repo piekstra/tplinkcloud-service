@@ -1,6 +1,7 @@
 from typing import List, Optional
 from pydantic import BaseModel
 
+
 class DeviceSystemInfo(BaseModel):
     hw_ver: str
     err_code: int
@@ -17,6 +18,7 @@ class DeviceSystemInfo(BaseModel):
     active_mode: str
     hw_id: str
     sw_ver: str
+
 
 class DeviceSystemInfoResponse(BaseModel):
     data: DeviceSystemInfo
