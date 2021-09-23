@@ -69,6 +69,17 @@ class TPLinkService:
 
         return self._jsonify(usage)
 
+    def get_device_sys_info(self, device_id):
+        device_data = self._device_manager.get_devices()
+
+        device_sys_info = None
+        for device in device_data:
+            if device_id.lower() in device.device_id.lower():
+                device_sys_info = device.get_sys_info()
+                return self._jsonify(device_sys_info)
+        
+        return device_sys_info
+
     def get_devices(self):
         device_data = self._device_manager.get_devices()
         return self._jsonify(device_data)
