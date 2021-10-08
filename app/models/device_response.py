@@ -1,4 +1,5 @@
 from typing import List, Optional
+from .device_sys_info import DeviceSystemInfo
 from pydantic import BaseModel
 
 
@@ -23,6 +24,7 @@ class DeviceInfo(BaseModel):
 class Device(BaseModel):
     device_id: str
     device_info: DeviceInfo
+    system_info: DeviceSystemInfo
 
 
 class DeviceResponse(BaseModel):
