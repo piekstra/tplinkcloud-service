@@ -1,4 +1,5 @@
 import json
+from typing import Optional
 from fastapi import APIRouter
 from fastapi import Depends
 
@@ -22,8 +23,8 @@ def get_service(token: str = Depends(oauth2_scheme)):
 
 
 @router.get('', response_model=DeviceResponse)
-def get_devices(tplink_service: TPLinkService = Depends(get_service)):
-    device_data = tplink_service.get_devices()
+def get_devices(name: Optional[str] = None, tplink_service: TPLinkService = Depends(get_service)):
+    device_data = tplink_service.get_devices(name)
 
     print(json.dumps(device_data))
 

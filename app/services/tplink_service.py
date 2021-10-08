@@ -1,4 +1,6 @@
+from typing import Optional
 from tplinkcloud import TPLinkDeviceManager, TPLinkDeviceManagerPowerTools
+from tplinkcloud.device import TPLinkDevice
 
 
 class TPLinkService:
@@ -80,9 +82,11 @@ class TPLinkService:
 
         return device_sys_info
 
-    def get_devices(self):
+    def get_devices(self, name: Optional[str] = None):
         device_data = self._device_manager.get_devices()
-        return self._jsonify(device_data)
+        name_filter = filter(lambda device: (name is None or name.lower() in device.device_info.alias.lower()), device_data)
+        filtered_data = list(name_filter)
+        return self._jsonify(filtered_data)
 
     def _jsonify(self, data):
         if type(data) is list:
