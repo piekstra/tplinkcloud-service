@@ -82,11 +82,11 @@ class TPLinkService:
 
         return device_sys_info
 
-    def get_devices(self, name: Optional[str] = None):
+    def get_devices(self, name: Optional[str] = None, model: Optional[str] = None):
         device_data = self._device_manager.get_devices()
         name_filter = filter(lambda device: (name is None or name.lower() in device.device_info.alias.lower()), device_data)
-        filtered_data = list(name_filter)
-        return self._jsonify(filtered_data)
+        model_filter = filter(lambda device: (model is None or model.lower() in device.device_info.device_model.lower()), name_filter)
+        return self._jsonify(list(model_filter))
 
     def _jsonify(self, data):
         if type(data) is list:

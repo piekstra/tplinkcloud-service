@@ -23,9 +23,8 @@ def get_service(token: str = Depends(oauth2_scheme)):
 
 
 @router.get('', response_model=DeviceResponse)
-def get_devices(name: Optional[str] = None, tplink_service: TPLinkService = Depends(get_service)):
-    device_data = tplink_service.get_devices(name)
-
+def get_devices(name: Optional[str] = None, model: Optional[str] = None, tplink_service: TPLinkService = Depends(get_service)):
+    device_data = tplink_service.get_devices(name, model)
     print(json.dumps(device_data))
 
     return {
