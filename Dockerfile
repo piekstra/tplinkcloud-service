@@ -6,4 +6,4 @@ WORKDIR /app
 
 RUN pip install --no-cache-dir --upgrade -r requirements.txt
 
-CMD gunicorn -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT main:app
+CMD gunicorn -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT main:app

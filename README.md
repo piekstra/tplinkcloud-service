@@ -16,11 +16,11 @@ This project is built and tested with Python 3.7, 3.8, and 3.9.
 
 Download the latest version of Python [here](https://www.python.org/downloads/).
 
-### Uvicorn
+### Gunicorn
 
-Uvicorn is an HTTP server implementation which will be installed by running `pip install -r requirements.txt` from a terminal running in the [app directory](./app/).
+Gunicorn is a Python WSGI HTTP Server for UNIX which will be installed by running `pip install -r requirements.txt` from a terminal running in the [app directory](./app/).
 
-Read more about Uvicorn [here](https://www.uvicorn.org/).
+Read more about Gunicorn [here](https://gunicorn.org/).
 
 ## Environment
 
@@ -28,7 +28,7 @@ You may need to setup environment variables with proper values in a `.env` file.
 
 ## Running the API for Development
 
-From the [app](app) folder, you can simply run `uvicorn main:app --reload` to serve the API in development mode.
+From the [app](app) folder, you can simply run `gunicorn -k uvicorn.workers.UvicornWorker main:app --reload` to serve the API in development mode.
 
 The app's Swagger page will then be available at http://localhost:8000/docs
 
@@ -40,6 +40,7 @@ You can leverage the [`Dockerfile`](Dockerfile) to run the API using the followi
 docker build . -t apiserver
 
 docker run -d \
+    -e PORT=80 \
     -p 80:80 \
     apiserver
 ```
@@ -50,7 +51,7 @@ This can be useful to leverage the same process as the GitHub Actions Workflow f
 
 ## Service Discovery
 
-Swagger is available at the `/docs` URL. If running locally, this would be accessed at [here](http://localhost:8000/docs).
+Swagger is available at the `/docs` URL. If running locally, this would be accessed [here](http://localhost:8000/docs), otherwise if run as a docker container, [here](http://localhost/docs).
 
 ## Authentication
 
