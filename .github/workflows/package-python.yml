@@ -31,6 +31,7 @@ jobs:
       run: |
         docker build . -t apiserver
         docker run -d \
+          -e PORT=80 \
           -p 80:80 \
           apiserver
     - name: Install dependencies relevant to testing
