@@ -1,5 +1,9 @@
-FROM tiangolo/uvicorn-gunicorn:python3.8
+FROM python:3.9
 
 COPY ./app /app
-RUN pip install -U pip
-RUN pip install -r /app/requirements.txt
+
+WORKDIR /app
+
+RUN pip install --no-cache-dir --upgrade -r requirements.txt
+
+CMD gunicorn -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT main:app

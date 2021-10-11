@@ -1,0 +1,20 @@
+name: Fetch Logs for Heroku App Deployment
+
+on:
+  workflow_dispatch:
+
+env:
+  HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+  HEROKU_APP_NAME: ${{ secrets.HEROKU_APP_NAME }}
+  LOG_LINES: 200
+
+jobs:
+  build-push-and-release-image:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Fetch logs
+        run: heroku logs -a ${{ env.HEROKU_APP_NAME }} -n ${{ env.LOG_LINES }}

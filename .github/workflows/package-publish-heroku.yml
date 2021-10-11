@@ -9,7 +9,7 @@
 name: Create, publish, and deploy a Docker image to Heroku
 
 on:
-  release:s
+  release:
     types: [created]
 
 env:
