@@ -77,3 +77,12 @@ curl -X 'GET' \
 ### Swagger Authentication
 
 If calling the API through the Swagger documentation page, the consumer must first use the Authorize button at the top right passing the email and password credentials. Once authenticated in Swagger, subsequent calls do not currently require further identity context to be entered manually as they will be provided by the Swagger web client.
+
+## Service Deployment
+
+This service is currently deployed as a Heroku App and should be available [here][heroku-deployment].
+
+> Note that the `$PORT` environment variable indicated in the [`Dockerfile`](Dockerfile) is provided by Heroku per the documentation found [here](https://devcenter.heroku.com/articles/container-registry-and-runtime#get-the-port-from-the-environment-variable). For Heroku, the port is dynamic behind the scenes but for accessing the app's domain, no port specification is needed.
+
+
+[heroku-deployment]: https://tplinkcloud-service.herokuapp.com/docs
