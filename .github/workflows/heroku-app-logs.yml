@@ -13,8 +13,5 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
-
       - name: Fetch logs
         run: heroku logs -a ${{ env.HEROKU_APP_NAME }} -n ${{ env.LOG_LINES }}
