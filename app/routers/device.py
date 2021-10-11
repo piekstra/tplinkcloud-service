@@ -3,10 +3,14 @@ from typing import Optional
 from fastapi import APIRouter
 from fastapi import Depends
 
-from dependencies import oauth2_scheme
-from dependencies import root_path
-from services import TPLinkService
-from models import DeviceResponse, DeviceSystemInfoResponse
+try:
+    from dependencies import oauth2_scheme, root_path
+    from services import TPLinkService
+    from models import DeviceResponse, DeviceSystemInfoResponse
+except ImportError:
+    from ..dependencies import oauth2_scheme, root_path
+    from ..services import TPLinkService
+    from ..models import DeviceResponse, DeviceSystemInfoResponse
 
 router = APIRouter(
     prefix=f'{root_path}/devices',

@@ -1,11 +1,13 @@
 import time
 from fastapi import FastAPI
 
-from routers import user
-from routers import device_power
-from routers import device
+try:
+    from routers import user, device_power, device
+    from dependencies import root_path
+except ImportError:
+    from .routers import user, device_power, device
+    from .dependencies import root_path
 
-from dependencies import root_path
 
 # Note that root_path is not implemented via FastAPI(root_path='route') intentionally.
 # This is due to the behavior of Uvicorn in overwriting the root_path.

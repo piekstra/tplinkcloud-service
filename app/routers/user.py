@@ -1,10 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 
-from dependencies import root_path
-from dependencies import oauth2_scheme
-from services import TPLinkService
-from models import UserAuthToken
+try:
+    from dependencies import root_path, oauth2_scheme
+    from services import TPLinkService
+    from models import UserAuthToken
+except ImportError:
+    from ..dependencies import root_path, oauth2_scheme
+    from ..services import TPLinkService
+    from ..models import UserAuthToken
 
 router = APIRouter(
     # Changing this prefix will affect the oauth2_scheme

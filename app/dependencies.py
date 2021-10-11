@@ -1,5 +1,9 @@
 from fastapi.security import OAuth2PasswordBearer
-from configuration import Configuration
+
+try:
+    from configuration import Configuration
+except ImportError:
+    from .configuration import Configuration
 
 root_path = '/api/v1'
 

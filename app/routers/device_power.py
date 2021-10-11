@@ -2,12 +2,14 @@ import json
 from fastapi import APIRouter
 from fastapi import Depends
 
-from dependencies import oauth2_scheme
-from dependencies import root_path
-from services import TPLinkService
-from models import DevicesPowerCurrentResponse
-from models import DevicesPowerDayResponse
-from models import DevicesPowerMonthResponse
+try:
+    from dependencies import oauth2_scheme, root_path
+    from services import TPLinkService
+    from models import DevicesPowerCurrentResponse, DevicesPowerDayResponse, DevicesPowerMonthResponse
+except ImportError:
+    from ..dependencies import oauth2_scheme, root_path
+    from ..services import TPLinkService
+    from ..models import DevicesPowerCurrentResponse, DevicesPowerDayResponse, DevicesPowerMonthResponse
 
 router = APIRouter(
     prefix=f'{root_path}/power/devices',
