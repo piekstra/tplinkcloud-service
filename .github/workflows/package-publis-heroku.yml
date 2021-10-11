@@ -1,0 +1,38 @@
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+#
+# Docs: https://devcenter.heroku.com/articles/container-registry-and-runtime
+# Guide: https://dev.to/heroku/deploying-to-heroku-from-github-actions-29ej
+
+name: Create and publish a Docker image to Heroku
+
+on:
+  release:
+    types: [created]
+
+env:
+  HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+  HEROKU_APP_NAME: ${{ secrets.HEROKU_APP_NAME }}
+
+jobs:
+  build-and-push-image:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      
+      - name: Login to the Heroku Container Registry
+        env: 
+        run: heroku container:login
+
+      - name: Build and push the container image
+        run: heroku container:push -a ${{ env.HEROKU_APP_NAME }} web 
+
+      - name: Deploy the release
+        run: heroku container:release -a ${{ env.HEROKU_APP_NAME }} web 
