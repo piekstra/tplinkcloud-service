@@ -9,7 +9,7 @@ env:
   LOG_LINES: 200
 
 jobs:
-  build-push-and-release-image:
+  fetch-heroku-app-logs:
     runs-on: ubuntu-latest
 
     steps:
