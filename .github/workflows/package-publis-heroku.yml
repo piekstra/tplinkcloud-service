@@ -6,10 +6,10 @@
 # Docs: https://devcenter.heroku.com/articles/container-registry-and-runtime
 # Guide: https://dev.to/heroku/deploying-to-heroku-from-github-actions-29ej
 
-name: Create and publish a Docker image to Heroku
+name: Create, publish, and deploy a Docker image to Heroku
 
 on:
-  release:
+  release:s
     types: [created]
 
 env:
@@ -17,11 +17,8 @@ env:
   HEROKU_APP_NAME: ${{ secrets.HEROKU_APP_NAME }}
 
 jobs:
-  build-and-push-image:
+  build-push-and-release-image:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
 
     steps:
       - name: Checkout repository
