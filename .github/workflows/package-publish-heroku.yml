@@ -10,7 +10,7 @@ name: Create, publish, and deploy a Docker image to Heroku
 
 on:
   release:
-    types: [created]
+    types: [published]
 
 env:
   HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
