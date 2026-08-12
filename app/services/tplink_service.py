@@ -1,5 +1,7 @@
 import asyncio
+import base64
 import logging
+import re
 import uuid
 from decimal import Decimal
 from typing import Literal
@@ -46,6 +48,22 @@ def _info_value(sys_info, key):
     if isinstance(sys_info, dict):
         return sys_info.get(key)
     return getattr(sys_info, key, None)
+
+
+_BASE64_ALIAS_RE = re.compile(r"^[A-Za-z0-9+/]{8,}={0,2}$")
+
+
+def decode_alias(alias):
+    """Some devices (e.g. the DL110 doorbell) report base64-encoded aliases
+    through the cloud list; the official app decodes them. Only rewrites
+    strings that strictly decode to printable text."""
+    if not alias or len(alias) % 4 != 0 or not _BASE64_ALIAS_RE.match(alias):
+        return alias
+    try:
+        decoded = base64.b64decode(alias, validate=True).decode("utf-8")
+    except (ValueError, UnicodeDecodeError):
+        return alias
+    return decoded if decoded and decoded.isprintable() else alias
 
 
 class TPLinkGateway:
@@ -229,7 +247,7 @@ class TPLinkSession:
         return DeviceSummary(
             device_id=device.device_id,
             child_id=device.child_id,
-            alias=device.get_alias(),
+            alias=decode_alias(device.get_alias()),
             model=parent.device_info.device_model if parent else "",
             device_type=device.model_type.name,
             cloud=getattr(device, "cloud_type", "kasa") or "kasa",
@@ -269,7 +287,7 @@ class TPLinkSession:
         return {
             "device_id": device.device_id,
             "child_id": device.child_id,
-            "alias": device.get_alias(),
+            "alias": decode_alias(device.get_alias()),
             "model": parent.device_info.device_model if parent else "",
             "device_type": device.model_type.name,
             "cloud": getattr(device, "cloud_type", "kasa") or "kasa",

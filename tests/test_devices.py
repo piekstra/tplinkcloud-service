@@ -137,3 +137,16 @@ async def test_power_rejects_bad_action(client):
     )
 
     assert response.status_code == 422
+
+
+def test_decode_alias():
+    from app.services.tplink_service import decode_alias
+
+    # Some devices (e.g. DL-series doorbells) report their alias
+    # base64-encoded via the cloud list
+    assert decode_alias("R2FyYWdlIExpZ2h0") == "Garage Light"
+    # Ordinary aliases pass through untouched
+    assert decode_alias("Desk Lamp") == "Desk Lamp"
+    assert decode_alias("Duster") == "Duster"
+    assert decode_alias("Desk Plug 1") == "Desk Plug 1"
+    assert decode_alias("") == ""
