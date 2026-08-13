@@ -1,9 +1,14 @@
-"""Opaque session token minted by this service.
+"""Session token minted by this service.
 
 TP-Link's v2 cloud auth produces more than a single token: a Kasa token, an
 optional Tapo token, the per-account regional API hosts, and the terminal id
 the tokens were minted under. To stay stateless, the whole set is packed into
-one opaque bearer token (base64url JSON) that the client stores and replays.
+one bearer token (unsigned base64url JSON) that the client stores and replays.
+
+The token is opaque only in the API-contract sense — clients must not depend
+on its structure. It is NOT encrypted or signed: whoever holds it can decode
+the vendor tokens inside, which is the same trust level as holding the vendor
+tokens themselves. Treat it exactly like a session credential.
 """
 
 import base64
