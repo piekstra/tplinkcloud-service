@@ -8,7 +8,22 @@ permissions:
   contents: read
 
 jobs:
+  # Gate the publish on the same checks as CI so a tag on a broken commit
+  # can't publish a green image.
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv sync --frozen
+      - run: uv run ruff format --check app tests
+      - run: uv run ruff check app tests
+      - run: uv run pytest -q
+
   publish:
+    needs: verify
     runs-on: ubuntu-latest
     permissions:
       contents: read

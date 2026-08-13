@@ -38,6 +38,19 @@ async def test_forged_regional_host_is_rejected(fleet, bad_host):
     assert response.status_code == 401
 
 
+def test_host_allowlist_boundary_is_structural_without_leading_dot():
+    # An operator may list a bare domain (no leading dot); the label boundary
+    # must still hold so a lookalike host is not silently allowed.
+    from app.services.tplink_service import _host_allowed
+
+    allow = ["tplinkcloud.com"]
+    assert _host_allowed("https://wap.tplinkcloud.com", allow) is True
+    assert _host_allowed("https://tplinkcloud.com", allow) is True
+    assert _host_allowed("https://eviltplinkcloud.com", allow) is False
+    assert _host_allowed("https://tplinkcloud.com.evil.com", allow) is False
+    assert _host_allowed("http://wap.tplinkcloud.com", allow) is False  # non-https
+
+
 async def test_allowlisted_regional_host_is_accepted(fleet):
     token = encode_session_token(
         {

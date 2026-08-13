@@ -118,7 +118,7 @@ class FakeManager:
     def __init__(self, fleet, username=None, password=None, term_id=None, **kwargs):
         self._fleet = fleet
         self._term_id = term_id
-        self._kasa_api = FakeApi()
+        self._kasa_api = FakeApi(host=fleet.login_host)
         self._tapo_api = None
         self._kasa_token = None
         self.init_kwargs = kwargs
@@ -161,6 +161,7 @@ class FakeFleet:
     def __init__(self, parents, login_token="fake-kasa-token"):
         self.parents = parents
         self.login_token = login_token
+        self.login_host = "https://test-wap.tplinkcloud.com"
         self.login_error = None
         self.devices_error = None
 

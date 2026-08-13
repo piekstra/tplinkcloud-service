@@ -59,9 +59,14 @@ def _host_allowed(host: str, allowed_suffixes) -> bool:
     if parsed.scheme != "https" or not parsed.hostname:
         return False
     hostname = parsed.hostname.lower()
-    return any(
-        hostname == suffix.lstrip(".") or hostname.endswith(suffix) for suffix in allowed_suffixes
-    )
+    for suffix in allowed_suffixes:
+        # Normalize so "example.com" and ".example.com" are equivalent and the
+        # label boundary is structural — an operator who lists a bare domain
+        # must not accidentally allow "evilexample.com".
+        entry = suffix.lower().lstrip(".")
+        if hostname == entry or hostname.endswith("." + entry):
+            return True
+    return False
 
 
 _BASE64_ALIAS_RE = re.compile(r"^[A-Za-z0-9+/]{8,}={0,2}$")
@@ -128,9 +133,9 @@ class TPLinkGateway:
         # the same host, so it travels in the token. Validate it here too — if
         # TP-Link ever returns a host outside the allowlist, fail loudly at mint
         # rather than minting a token that restore will reject.
-        kasa_host = self._validated_host(manager._kasa_api.host)
+        kasa_host = self._validated_host(manager._kasa_api.host, minting=True)
         tapo_api = getattr(manager, "_tapo_api", None)
-        tapo_host = self._validated_host(tapo_api.host) if tapo_api else None
+        tapo_host = self._validated_host(tapo_api.host, minting=True) if tapo_api else None
         return encode_session_token(
             {
                 "v": 1,
@@ -142,10 +147,14 @@ class TPLinkGateway:
             }
         )
 
-    def _validated_host(self, host: str | None) -> str | None:
+    def _validated_host(self, host: str | None, *, minting: bool = False) -> str | None:
         if host is None:
             return None
         if not _host_allowed(host, self._settings.allowed_cloud_host_suffixes):
+            if minting:
+                # We just authenticated the user; a bad host is TP-Link returning
+                # something unexpected, not a bad client token. 502, not 401.
+                raise TPLinkCloudError("TP-Link returned an API host outside the allowed domains")
             raise InvalidServiceTokenError()
         return host
 
@@ -196,6 +205,12 @@ class TPLinkSession:
         # has an async signature but does the blocking fetch internally, hence
         # to_thread(asyncio.run, ...). Auth failures surface as the library's
         # typed errors (e.g. TPLinkTokenExpiredError -> 401).
+        #
+        # Note: asyncio.timeout bounds how long we WAIT for the response, not the
+        # worker thread — to_thread can't be cancelled. The thread itself is
+        # bounded instead by the library's own per-request socket timeout (~15s
+        # in tplink-cloud-api's requests calls), so a slow cloud frees the pool
+        # slot on that timescale rather than hanging indefinitely.
         try:
             async with asyncio.timeout(self._settings.cloud_timeout_seconds):
                 self._devices = await asyncio.to_thread(asyncio.run, self._manager.get_devices())

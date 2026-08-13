@@ -32,6 +32,19 @@ async def test_login_rejects_bad_credentials(client, fleet):
     assert response.headers["WWW-Authenticate"] == "Bearer"
 
 
+async def test_login_with_unexpected_cloud_host_maps_to_502(client, fleet):
+    # Credentials were accepted, but TP-Link handed back a host outside the
+    # allowlist: that's a cloud anomaly (502), not a bad client token (401).
+    fleet["fleet"].login_host = "https://evil.example.com"
+
+    response = await client.post(
+        "/api/v1/user/token",
+        data={"username": "user@example.com", "password": "hunter2"},
+    )
+
+    assert response.status_code == 502
+
+
 async def test_login_reports_mfa_requirement(client, fleet):
     fleet["fleet"].login_error = TPLinkMFARequiredError(
         "MFA verification required", mfa_type="email", email="u***@example.com"
