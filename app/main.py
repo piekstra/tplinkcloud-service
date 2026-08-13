@@ -14,13 +14,15 @@ from app.settings import Settings
 # Note that root_path is not implemented via FastAPI(root_path='route') intentionally.
 # This is due to the behavior of Uvicorn in overwriting the root_path.
 # https://fastapi.tiangolo.com/advanced/behind-a-proxy/
-def create_app(settings: Settings | None = None) -> FastAPI:
+def create_app(settings: Settings | None = None, gateway: TPLinkGateway | None = None) -> FastAPI:
     settings = settings or Settings()
     logging.basicConfig(level=settings.log_level)
 
     app = FastAPI(title="TP-Link Kasa API Service", version="2.0.0")
     app.state.settings = settings
-    app.state.gateway = TPLinkGateway(settings)
+    # Injectable so tests supply a gateway wired to a fake library manager,
+    # keeping this the single place the object graph is assembled.
+    app.state.gateway = gateway or TPLinkGateway(settings)
 
     if settings.cors_origins:
         app.add_middleware(

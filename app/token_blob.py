@@ -9,6 +9,12 @@ The token is opaque only in the API-contract sense — clients must not depend
 on its structure. It is NOT encrypted or signed: whoever holds it can decode
 the vendor tokens inside, which is the same trust level as holding the vendor
 tokens themselves. Treat it exactly like a session credential.
+
+Because it is unsigned and client-supplied, the one field that could be
+weaponized — the regional API host, which becomes an outbound request
+destination — is validated against an allowlist of TP-Link domains before use
+(see tplink_service._host_allowed), so a tampered token cannot turn the
+service into an SSRF sink.
 """
 
 import base64

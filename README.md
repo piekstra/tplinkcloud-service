@@ -38,10 +38,11 @@ control call → `409`, TP-Link cloud unreachable/erroring → `502`, cloud time
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `DEVICE_CACHE_TTL` | `60` | Seconds a token's device list is cached before refetching |
+| `DEVICE_CACHE_MAX_SESSIONS` | `32` | Max distinct tokens held in the in-process session/device-list cache |
 | `CLOUD_TIMEOUT_SECONDS` | `30` | Ceiling for any fan-out to the TP-Link cloud |
 | `CORS_ORIGINS` | `[]` | JSON list of allowed origins; empty disables CORS (same-origin deployments behind a reverse proxy don't need it) |
-| `AUTH_ERROR_CODES` | `[-20651]` | TP-Link error codes treated as auth failures (401) |
-| `TPLINK_API_URL` | `https://wap.tplinkcloud.com` | TP-Link cloud endpoint |
+| `ALLOWED_CLOUD_HOST_SUFFIXES` | `[".tplinkcloud.com"]` | Host suffixes a session token's regional API host may use (SSRF guard) |
+| `TPLINK_CLOUD_API_HOST` | _(library default)_ | Override the TP-Link cloud host; leave unset in production (testing only) |
 | `LOG_LEVEL` | `INFO` | Python logging level |
 
 ## Development

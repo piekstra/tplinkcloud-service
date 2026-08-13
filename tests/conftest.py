@@ -57,9 +57,8 @@ def fleet():
 def build_app(fleet, **settings_overrides):
     settings_overrides.setdefault("cloud_timeout_seconds", 5)
     settings = Settings(**settings_overrides)
-    application = create_app(settings)
-    application.state.gateway = TPLinkGateway(settings, manager_factory=fleet["fleet"].factory)
-    return application
+    gateway = TPLinkGateway(settings, manager_factory=fleet["fleet"].factory)
+    return create_app(settings, gateway=gateway)
 
 
 @pytest.fixture

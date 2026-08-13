@@ -28,10 +28,15 @@ class SessionCache:
             return session
 
         lock = self._locks.setdefault(key, asyncio.Lock())
-        async with lock:
-            session = self._cache.get(key)
-            if session is None:
-                session = await factory()
-                self._cache[key] = session
+        try:
+            async with lock:
+                session = self._cache.get(key)
+                if session is None:
+                    session = await factory()
+                    self._cache[key] = session
+        finally:
+            # Pop on every path, including a raising factory (e.g. an invalid
+            # token). Otherwise anonymous callers with garbage tokens grow
+            # _locks without bound, since it has no maxsize/TTL of its own.
             self._locks.pop(key, None)
         return session

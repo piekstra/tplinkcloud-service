@@ -5,6 +5,7 @@ import re
 import uuid
 from decimal import Decimal
 from typing import Literal
+from urllib.parse import urlparse
 
 from tplinkcloud import (
     TPLinkCloudError,
@@ -13,8 +14,8 @@ from tplinkcloud import (
 )
 
 from app.cache import SessionCache
-from app.errors import DeviceNotFoundError, DeviceOfflineError
-from app.models import DeviceSummary
+from app.errors import DeviceNotFoundError, DeviceOfflineError, InvalidServiceTokenError
+from app.models import DeviceDetail, DeviceSummary
 from app.settings import Settings
 from app.token_blob import decode_session_token, encode_session_token
 
@@ -48,6 +49,19 @@ def _info_value(sys_info, key):
     if isinstance(sys_info, dict):
         return sys_info.get(key)
     return getattr(sys_info, key, None)
+
+
+def _host_allowed(host: str, allowed_suffixes) -> bool:
+    """The regional API host from a session token becomes the outbound request
+    destination; allow only https TP-Link domains so a tampered token can't
+    point credentialed requests at an attacker-chosen host (SSRF)."""
+    parsed = urlparse(host)
+    if parsed.scheme != "https" or not parsed.hostname:
+        return False
+    hostname = parsed.hostname.lower()
+    return any(
+        hostname == suffix.lstrip(".") or hostname.endswith(suffix) for suffix in allowed_suffixes
+    )
 
 
 _BASE64_ALIAS_RE = re.compile(r"^[A-Za-z0-9+/]{8,}={0,2}$")
@@ -110,19 +124,30 @@ class TPLinkGateway:
         if not kasa_token:
             return None
 
+        # Login discovers the account's regional API host; data calls must go to
+        # the same host, so it travels in the token. Validate it here too — if
+        # TP-Link ever returns a host outside the allowlist, fail loudly at mint
+        # rather than minting a token that restore will reject.
+        kasa_host = self._validated_host(manager._kasa_api.host)
         tapo_api = getattr(manager, "_tapo_api", None)
+        tapo_host = self._validated_host(tapo_api.host) if tapo_api else None
         return encode_session_token(
             {
                 "v": 1,
                 "term_id": term_id,
                 "kasa_token": kasa_token,
-                # Login discovers the account's regional API host; data calls
-                # must go to the same host. There is no public getter.
-                "kasa_host": manager._kasa_api.host,
+                "kasa_host": kasa_host,
                 "tapo_token": manager.get_tapo_token(),
-                "tapo_host": tapo_api.host if tapo_api else None,
+                "tapo_host": tapo_host,
             }
         )
+
+    def _validated_host(self, host: str | None) -> str | None:
+        if host is None:
+            return None
+        if not _host_allowed(host, self._settings.allowed_cloud_host_suffixes):
+            raise InvalidServiceTokenError()
+        return host
 
     async def session(self, token: str) -> "TPLinkSession":
         return await self._sessions.get_or_create(token, lambda: self._create_session(token))
@@ -138,13 +163,16 @@ class TPLinkGateway:
         )
         manager.set_auth_token(blob["kasa_token"])
         if blob.get("kasa_host"):
-            # Restore the regional host discovered at login (no public setter)
-            manager._kasa_api.host = blob["kasa_host"]
+            # Restore the regional host discovered at login. Re-validate: the
+            # token is client-supplied and unsigned, so an allowlisted host is
+            # what keeps this from being an SSRF sink (no public setter, hence
+            # the private attribute). See _validated_host / _host_allowed.
+            manager._kasa_api.host = self._validated_host(blob["kasa_host"])
         if blob.get("tapo_token") and getattr(manager, "_tapo_api", None):
             # The library has no public setter for the Tapo token pair
             manager._tapo_token = blob["tapo_token"]
             if blob.get("tapo_host"):
-                manager._tapo_api.host = blob["tapo_host"]
+                manager._tapo_api.host = self._validated_host(blob["tapo_host"])
 
         session = TPLinkSession(manager, self._settings)
         await session.load_devices()
@@ -161,17 +189,28 @@ class TPLinkSession:
         self._devices = []
 
     async def load_devices(self):
-        # get_devices() has an async signature but fetches the cloud device
-        # list with blocking `requests` internally; run the whole call on a
-        # worker thread with its own event loop. Auth failures surface as the
-        # library's typed errors (e.g. TPLinkTokenExpiredError -> 401).
+        # Offloading seam: the library's device *commands* (sys_info, power,
+        # emeter — see device_summaries/device_detail/set_power) use aiohttp and
+        # are awaited directly. Only login and this device-list fetch use blocking
+        # `requests`, so only they are pushed to a worker thread. get_devices()
+        # has an async signature but does the blocking fetch internally, hence
+        # to_thread(asyncio.run, ...). Auth failures surface as the library's
+        # typed errors (e.g. TPLinkTokenExpiredError -> 401).
         try:
             async with asyncio.timeout(self._settings.cloud_timeout_seconds):
                 self._devices = await asyncio.to_thread(asyncio.run, self._manager.get_devices())
         except (TPLinkCloudError, TimeoutError):
             raise
-        except Exception as exc:
-            raise TPLinkCloudError(f"TP-Link cloud is unreachable: {exc}") from exc
+        except (ConnectionError, OSError) as exc:
+            # A genuine transport failure reaching the cloud -> 502
+            raise TPLinkCloudError("Unable to reach the TP-Link cloud") from exc
+        except Exception:
+            # Anything else is almost certainly a bug in this service (e.g. the
+            # library changed a private attribute we depend on). Surface it as a
+            # 502 but log the real traceback rather than blaming the vendor
+            # silently, and don't echo internal detail to the client.
+            logger.exception("Unexpected error fetching device list")
+            raise TPLinkCloudError("Unable to load devices") from None
         return self._devices
 
     def _parents(self):
@@ -237,6 +276,12 @@ class TPLinkSession:
                 child = next((c for c in children if _info_value(c, "id") == device.child_id), None)
                 if child is not None:
                     is_on = _info_value(child, "state") == 1
+                else:
+                    # device_detail fetches the outlet's own sys_info, which
+                    # carries `state` directly instead of a parent children list
+                    state = _info_value(sys_info, "state")
+                    if state is not None:
+                        is_on = state == 1
             elif device.has_children():
                 # A strip's outlets switch individually; the parent has no single on/off
                 is_on = None
@@ -257,9 +302,10 @@ class TPLinkSession:
             rssi=rssi,
         )
 
-    async def device_detail(self, device_id: str, child_id: str | None = None) -> dict:
+    async def device_detail(self, device_id: str, child_id: str | None = None) -> DeviceDetail:
         device = self._find_device(device_id, child_id)
-        parent = self._parents().get(device_id)
+        parents = self._parents()
+        parent = parents.get(device_id)
         is_online = bool(parent and parent.device_info.status == 1)
 
         sys_info = None
@@ -275,29 +321,14 @@ class TPLinkSession:
             if isinstance(net_info, Exception):
                 net_info = None
 
-        raw_sys_info = jsonify(sys_info)
-        is_on = None
-        if raw_sys_info:
-            if device.child_id is not None:
-                is_on = raw_sys_info.get("state") == 1
-            elif not device.has_children():
-                relay_state = raw_sys_info.get("relay_state")
-                is_on = relay_state == 1 if relay_state is not None else None
-
-        return {
-            "device_id": device.device_id,
-            "child_id": device.child_id,
-            "alias": decode_alias(device.get_alias()),
-            "model": parent.device_info.device_model if parent else "",
-            "device_type": device.model_type.name,
-            "cloud": getattr(device, "cloud_type", "kasa") or "kasa",
-            "is_online": is_online,
-            "is_on": is_on,
-            "has_emeter": device.has_emeter(),
-            "rssi": raw_sys_info.get("rssi") if raw_sys_info else None,
-            "sys_info": raw_sys_info,
-            "net_info": jsonify(net_info),
-        }
+        # Build the shared summary fields through the single producer so
+        # GET /devices and GET /devices/{id} can't disagree about is_on/rssi.
+        summary = self._summarize(device, parents, {device_id: sys_info})
+        return DeviceDetail(
+            **summary.model_dump(),
+            sys_info=jsonify(sys_info),
+            net_info=jsonify(net_info),
+        )
 
     async def device_sys_info(self, device_id: str, child_id: str | None = None):
         device = self._find_device(device_id, child_id)

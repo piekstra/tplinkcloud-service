@@ -10,7 +10,8 @@ from types import SimpleNamespace
 
 
 class FakeApi:
-    def __init__(self, host="https://fake-regional.example"):
+    # A realistic regional host so it passes the SSRF allowlist by default
+    def __init__(self, host="https://test-wap.tplinkcloud.com"):
         self.host = host
 
 

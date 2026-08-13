@@ -849,7 +849,7 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.10" },
     { name = "pydantic-settings", specifier = ">=2.7" },
     { name = "python-multipart", specifier = ">=0.0.20" },
-    { name = "tplink-cloud-api", specifier = ">=4.2.0" },
+    { name = "tplink-cloud-api", specifier = ">=5.2.0,<6" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.34" },
 ]
 

@@ -16,7 +16,7 @@ async def test_login_returns_opaque_session_token(client):
     assert body["token_type"] == "bearer"
     blob = decode_session_token(body["access_token"])
     assert blob["kasa_token"] == "fake-kasa-token"
-    assert blob["kasa_host"] == "https://fake-regional.example"
+    assert blob["kasa_host"] == "https://test-wap.tplinkcloud.com"
     assert blob["term_id"]
 
 
