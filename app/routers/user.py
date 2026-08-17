@@ -1,46 +1,38 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, Form, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 
-from dependencies import root_path
-from dependencies import oauth2_scheme
-from services import TPLinkService
-from models import UserAuthToken
+from app.dependencies import Gateway, root_path
+from app.models import UserAuthToken
 
 router = APIRouter(
     # Changing this prefix will affect the oauth2_scheme
-    prefix=f'{root_path}/user',
-    tags=['user'],
-    dependencies=[],
-    responses={404: {'description': 'Not found'}}
+    prefix=f"{root_path}/user",
+    tags=["user"],
 )
 
 
 # Changing this route will affect the oauth2_scheme
-@router.post('/token', response_model=UserAuthToken)
-async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
-    tplink_service = TPLinkService()
-    auth_token = tplink_service.login(form_data.username, form_data.password)
+@router.post("/token", response_model=UserAuthToken)
+async def login_for_access_token(
+    form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
+    gateway: Gateway,
+    # When TP-Link demands MFA, the login response is a 401 with
+    # mfa_required=true; resubmit the same form with this extra field.
+    mfa_code: Annotated[str | None, Form()] = None,
+):
+    auth_token = await gateway.login(form_data.username, form_data.password, mfa_code=mfa_code)
     if not auth_token:
-        # Failed to authenticate an existing user
-        # The header here is required by OAuth2 Spec
+        # The header here is required by the OAuth2 spec
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail='Incorrect username or password',
-            headers={
-                'WWW-Authenticate': 'Bearer'
-            },
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
         )
 
-    # This return type and keys are required by OAuth2 Spec
+    # This return type and keys are required by the OAuth2 spec
     return {
-        'access_token': auth_token,
-        'token_type': 'bearer'
-    }
-
-
-@router.get('/token', response_model=UserAuthToken)
-async def show_token(token: str = Depends(oauth2_scheme)):
-    return {
-        'access_token': token,
-        'token_type': 'bearer'
+        "access_token": auth_token,
+        "token_type": "bearer",
     }

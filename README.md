@@ -1,88 +1,80 @@
-# API
+# tplinkcloud-service
 
-This project uses your Kasa credentials to make queries to the TP-Link Cloud API
+A REST API for monitoring and controlling TP-Link Kasa smart devices through the
+[TP-Link cloud](https://www.tplinkcloud.com/), built on
+[tplink-cloud-api](https://github.com/piekstra/tplink-cloud-api). No local network
+access to the devices is required.
 
-## Prerequisites
+The primary consumer is [tplink-kasa-ui](https://github.com/piekstra/tplink-kasa-ui).
 
-### TP-Link Cloud Account
+## Auth model
 
-These services are require a TP-Link Cloud account. 
+Stateless pass-through: `POST /api/v1/user/token` forwards your Kasa credentials to the
+TP-Link cloud and returns TP-Link's own session token as the bearer token. The service
+stores nothing — every request is authorized by TP-Link when the token is used. When the
+token expires, requests return `401` and the client logs in again.
 
-If you are new to TP-Link Kasa products, you can start by creating an account [here](https://www.tplinkcloud.com/register.php). These credentials are used for authentication in the `/api/v1/user/token` workflow.
+## API
 
-### Python 3.7+
+All routes are prefixed with `/api/v1`.
 
-This project is built and tested with Python 3.7, 3.8, and 3.9. 
+| Method | Path | Auth | Description |
+| --- | --- | --- | --- |
+| GET | `/time` | none | Health check; returns server epoch time |
+| POST | `/user/token` | none | Login (OAuth2 password form) → bearer token |
+| GET | `/devices` | bearer | All devices, power-strip outlets flattened alongside their parent. Filters: `name`, `model`, `state=on\|off\|offline` |
+| GET | `/devices/{device_id}` | bearer | Device detail incl. raw sys_info and net info (`child_id` query param for strip outlets) |
+| GET | `/devices/{device_id}/systeminfo` | bearer | Raw sys_info only |
+| POST | `/devices/{device_id}/power` | bearer | Body `{"action": "on"\|"off"\|"toggle"}`; `child_id` query param for strip outlets. `409` if the device is offline |
+| GET | `/power/devices/current` | bearer | Realtime power for emeter devices; optional `named` substring filter |
+| GET | `/power/devices/day` | bearer | Daily energy (current + previous month) |
+| GET | `/power/devices/month` | bearer | Monthly energy (current + previous year) |
 
-Download the latest version of Python [here](https://www.python.org/downloads/).
+Error mapping: TP-Link auth failures → `401`, unknown device → `404`, device offline on a
+control call → `409`, TP-Link cloud unreachable/erroring → `502`, cloud timeout → `504`.
 
-### Gunicorn
+## Configuration (env vars)
 
-Gunicorn is a Python WSGI HTTP Server for UNIX which will be installed by running `pip install -r requirements.txt` from a terminal running in the [app directory](./app/).
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `DEVICE_CACHE_TTL` | `60` | Seconds a token's device list is cached before refetching |
+| `DEVICE_CACHE_MAX_SESSIONS` | `32` | Max distinct tokens held in the in-process session/device-list cache |
+| `CLOUD_TIMEOUT_SECONDS` | `30` | Ceiling for any fan-out to the TP-Link cloud |
+| `CORS_ORIGINS` | `[]` | JSON list of allowed origins; empty disables CORS (same-origin deployments behind a reverse proxy don't need it) |
+| `ALLOWED_CLOUD_HOST_SUFFIXES` | `[".tplinkcloud.com"]` | Host suffixes a session token's regional API host may use (SSRF guard) |
+| `TPLINK_CLOUD_API_HOST` | _(library default)_ | Override the TP-Link cloud host; leave unset in production (testing only) |
+| `LOG_LEVEL` | `INFO` | Python logging level |
 
-Read more about Gunicorn [here](https://gunicorn.org/).
+## Development
 
-## Environment
-
-You may need to setup environment variables with proper values in a `.env` file. There is a [`.env.example`](app/configuration/.env.example) provided as an example of what variables to specify, if any.
-
-## Running the API for Development
-
-From the [app](app) folder, you can simply run `gunicorn -k uvicorn.workers.UvicornWorker main:app --reload` to serve the API in development mode.
-
-The app's Swagger page will then be available at http://localhost:8000/docs
-
-### Running as a Docker Container
-
-You can leverage the [`Dockerfile`](Dockerfile) to run the API using the following command which will build the docker container image and run it:
-
-```sh
-docker build . -t apiserver
-
-docker run -d \
-    -e PORT=80 \
-    -p 80:80 \
-    apiserver
-```
-
-The API will be available at: http://localhost/
-
-This can be useful to leverage the same process as the GitHub Actions Workflow for packaging the Python code.
-
-## Service Discovery
-
-Swagger is available at the `/docs` URL. If running locally, this would be accessed [here](http://localhost:8000/docs), otherwise if run as a docker container, [here](http://localhost/docs).
-
-## Authentication
-
-A consumer must first POST to the `/api/v1/user/token` endpoint with valid TPLinkCloud account credentials as the POST data. An example curl request might look as follows:
+Requires [uv](https://docs.astral.sh/uv/).
 
 ```sh
-curl -X 'POST' \
-    'http://localhost:8000/api/v1/user/token' \
-    -H 'accept: application/json' \
-    -H 'Content-Type: application/x-www-form-urlencoded' \
-    -d 'grant_type=&username=USER%40EMAIL.com&password=PASSWORD'
+uv sync                                # install deps
+uv run uvicorn app.main:app --reload   # run on :8000
+uv run pytest                          # tests
+uv run ruff check app tests && uv run ruff format app tests
 ```
 
-Subsequent API calls require an HTTP header value using the token provided by the output of the `/api/v1/user/token` call. An example curl request with the authentication bearer token provided might look as follows
+Interactive API docs: http://localhost:8000/docs
+
+## Docker
 
 ```sh
-curl -X 'GET' \
-  'http://localhost:8000/api/v1/power/devices/current?named=X' \
-  -H 'accept: application/json' \
-  -H 'Authorization: Bearer 77eee444-ATMdNs6Qy3woK7FM2MaGMar'
+docker build -t tplinkcloud-service .
+docker run -p 8000:8000 tplinkcloud-service
 ```
 
-### Swagger Authentication
+Images are published to `ghcr.io/piekstra/tplinkcloud-service` on `v*` tags.
+Run a single container per deployment: the device-list cache is in-process, so multiple
+workers would each maintain their own (harmless, but wasteful of TP-Link cloud calls).
 
-If calling the API through the Swagger documentation page, the consumer must first use the Authorize button at the top right passing the email and password credentials. Once authenticated in Swagger, subsequent calls do not currently require further identity context to be entered manually as they will be provided by the Swagger web client.
+## Vendor-service convention
 
-## Service Deployment
+This service is the TP-Link implementation of a small convention intended to be shared by
+future vendor services (govee, roomba, ...) behind a multi-vendor home dashboard:
 
-This service is currently deployed as a Heroku App and should be available [here][heroku-deployment].
-
-> Note that the `$PORT` environment variable indicated in the [`Dockerfile`](Dockerfile) is provided by Heroku per the documentation found [here](https://devcenter.heroku.com/articles/container-registry-and-runtime#get-the-port-from-the-environment-variable). For Heroku, the port is dynamic behind the scenes but for accessing the app's domain, no port specification is needed.
-
-
-[heroku-deployment]: https://tplinkcloud-service.herokuapp.com/docs
+- `POST /user/token` — vendor login → opaque bearer token, nothing stored server-side
+- `GET /devices` — flat summaries: `device_id`, `child_id?`, `alias`, `is_online`, `is_on`, capabilities
+- `POST /devices/{id}/power` — imperative control, `409` when unreachable
+- Vendor error codes mapped onto `401/404/409/502/504`

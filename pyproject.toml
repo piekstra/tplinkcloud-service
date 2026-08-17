@@ -1,0 +1,43 @@
+[project]
+name = "tplinkcloud-service"
+version = "2.0.0"
+description = "REST API for monitoring and controlling TP-Link Kasa devices via the TP-Link cloud"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.34",
+    "pydantic>=2.10",
+    "pydantic-settings>=2.7",
+    "python-multipart>=0.0.20",
+    "cachetools>=5.5",
+    # v5 is required: the code imports the typed errors and uses the dual-cloud
+    # (Kasa+Tapo) surface. Upper bound because the session restore reaches a few
+    # library internals (see tplink_service._create_session) that a major bump
+    # could change; treat that bump as a deliberate migration.
+    "tplink-cloud-api>=5.2.0,<6",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "pytest-asyncio>=0.25",
+    "httpx>=0.28",
+    "ruff>=0.9",
+]
+
+[tool.uv]
+package = false
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+pythonpath = ["."]
+testpaths = ["tests"]

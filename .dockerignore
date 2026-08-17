@@ -1,4 +1,11 @@
 **/.env*
 **/*.pyc
 **/__pycache__/
-**/.gitignore
+.git
+.github
+.venv
+venv
+tests
+.pytest_cache
+.ruff_cache
+*.md
