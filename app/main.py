@@ -18,7 +18,7 @@ def create_app(settings: Settings | None = None, gateway: TPLinkGateway | None =
     settings = settings or Settings()
     logging.basicConfig(level=settings.log_level)
 
-    app = FastAPI(title="TP-Link Kasa API Service", version="2.0.0")
+    app = FastAPI(title="TP-Link Kasa API Service", version="3.0.0")
     app.state.settings = settings
     # Injectable so tests supply a gateway wired to a fake library manager,
     # keeping this the single place the object graph is assembled.
