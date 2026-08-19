@@ -809,20 +809,20 @@ wheels = [
 
 [[package]]
 name = "tplink-cloud-api"
-version = "5.2.0"
+version = "5.2.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiohttp" },
     { name = "requests" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/26/f2/72e3b43f9f36ece386ec2fd968d599fd9a544da14a4c298f1646c2961a1c/tplink_cloud_api-5.2.0.tar.gz", hash = "sha256:a35ef9c79b5608e893a5e66dec3215e8b3bc7c99b2cc271d09c3032966fdcde3", size = 52773, upload-time = "2026-02-08T07:13:37.536Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/2f/44/2b89ec7c07fd778dbabb9e954b21654579c80ac520f2e19dc86eb5ef365a/tplink_cloud_api-5.2.1.tar.gz", hash = "sha256:29aa7305965168a3e4e6d4d1ba65a943a2f2af8e01129eaf96f350a471d6db60", size = 53121, upload-time = "2026-08-19T22:04:59.099Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/9c/b6/42781ba77d537cb727034647a81ed41d49357b0e5cb8ecb3b6477281351a/tplink_cloud_api-5.2.0-py3-none-any.whl", hash = "sha256:f2821835bf1550490fd1852d6aafe4fedf27a82337b85f8eab935d067bc35db7", size = 52885, upload-time = "2026-02-08T07:13:35.862Z" },
+    { url = "https://files.pythonhosted.org/packages/1f/b3/e5d2525a6baa5963f8cb880bef5a9684299b7df1e877cb9ed8b33b139ad6/tplink_cloud_api-5.2.1-py3-none-any.whl", hash = "sha256:ba43e171959865d1898230b002e25d3ba609a2375f6144bf81eaa4ad4c982fe3", size = 53188, upload-time = "2026-08-19T22:04:57.674Z" },
 ]
 
 [[package]]
 name = "tplinkcloud-service"
-version = "2.0.0"
+version = "3.0.0"
 source = { virtual = "." }
 dependencies = [
     { name = "cachetools" },
@@ -849,7 +849,7 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.10" },
     { name = "pydantic-settings", specifier = ">=2.7" },
     { name = "python-multipart", specifier = ">=0.0.20" },
-    { name = "tplink-cloud-api", specifier = ">=5.2.0,<6" },
+    { name = "tplink-cloud-api", specifier = ">=5.2.1,<6" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.34" },
 ]
 

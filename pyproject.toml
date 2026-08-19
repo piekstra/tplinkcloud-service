@@ -1,6 +1,6 @@
 [project]
 name = "tplinkcloud-service"
-version = "2.0.0"
+version = "3.0.0"
 description = "REST API for monitoring and controlling TP-Link Kasa devices via the TP-Link cloud"
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -16,7 +16,7 @@ dependencies = [
     # (Kasa+Tapo) surface. Upper bound because the session restore reaches a few
     # library internals (see tplink_service._create_session) that a major bump
     # could change; treat that bump as a deliberate migration.
-    "tplink-cloud-api>=5.2.0,<6",
+    "tplink-cloud-api>=5.2.1,<6",
 ]
 
 [dependency-groups]
